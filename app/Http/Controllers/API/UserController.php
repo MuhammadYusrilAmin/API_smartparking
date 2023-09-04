@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Melihovv\Base64ImageDecoder\Base64ImageDecoder;
 use chillerlan\QRCode\{QRCode, QROptions};
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class UserController extends Controller
 {
@@ -92,7 +94,7 @@ class UserController extends Controller
                 'nama_lengkap' => $request->nama_lengkap,
                 'no_telp' => $request->no_telp,
                 'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'password' => bcrypt($request->password),
                 'nomor_identitas' => $no_identitas,
                 'no_plat' => $request->no_plat,
                 'foto_identitas' => $foto_identitas,
@@ -105,19 +107,63 @@ class UserController extends Controller
             ]);
 
 
-            $user = User::where('nomor_identitas', $no_identitas)->first();
+            // $user = User::where('nomor_identitas', $no_identitas)->first();
+
+            $token = JWTAuth::attempt(['no_telp' => $request->no_telp, 'password' => $request->password]);
+            $userResponse = getUser($request->no_telp);
+            $userResponse->token = $token;
+            $userResponse->token_expires_in = auth()->factory()->getTTL() * 60;
+            $userResponse->token_type = 'bearer';
 
             return ResponseFormatter::success([
-                'message' => 'User Registered',
-                'user' => $user
-            ], 200);
+                $userResponse
+            ], 'User Registered');
         } catch (\Throwable $th) {
-            return response()->json(['message' => $th->getMessage()], 500);
+            return ResponseFormatter::error([
+                'message' => 'something went wrong',
+                'error' => $th->getMessage()
+            ], 'Aunthentication Failed', 500);
         }
     }
 
-    public function login(Request $request){
-        $credential = $request
+    public function login(Request $request)
+    {
+        $credential = $request->only('no_telp', 'password');
+
+        $validator = Validator::make($credential, [
+            'no_telp' => ['required', 'string', 'max:15'],
+            'password' => ['required', 'string', 'max:255', 'min:6'],
+        ]);
+
+        // return $credential;
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->messages()], 400);
+        }
+
+        try {
+            $token = JWTAuth::attempt($credential);
+
+            if (!$token) {
+                return response()->json(['message' => 'Login Credential are invalid']);
+            }
+
+            $userResponse = getUser($request->no_telp);
+            $userResponse->token = $token;
+            $userResponse->token_expires_in = auth()->factory()->getTTL() * 60;
+            $userResponse->token_type = 'bearer';
+
+            return ResponseFormatter::success([
+                $userResponse
+            ], 'Authenticated');
+
+            // return $token;
+        } catch (JWTException $th) {
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error' => $th->getMessage(),
+            ], 'Authentication Failed', 500);
+        }
     }
 
     // https://www.base64-image.de/
