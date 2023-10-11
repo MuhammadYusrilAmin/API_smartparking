@@ -15,8 +15,4 @@ use chillerlan\QRCode\{QRCode, QROptions};
 */
 
 Route::get('/', function () {
-    
-
-    // Kembalikan URL file kode QR yang baru saja dibuat
-    return asset('qrcodes/' . $fileName);
 });

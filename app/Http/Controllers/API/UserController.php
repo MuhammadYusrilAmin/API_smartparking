@@ -6,13 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Helper\ResponseFormatter;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Melihovv\Base64ImageDecoder\Base64ImageDecoder;
 use chillerlan\QRCode\{QRCode, QROptions};
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -70,44 +69,23 @@ class UserController extends Controller
 
         try {
             $foto_identitas = null;
-            $foto_stnk = null;
-            $foto_kendaraan_depan = null;
-            $foto_kendaraan_belakang = null;
 
             if ($request->foto_identitas) {
-                $foto_identitas = $this->uploadBase64image($request->foto_identitas);
-            }
-
-            if ($request->foto_stnk) {
-                $foto_stnk = $this->uploadBase64image($request->foto_stnk);
-            }
-
-            if ($request->foto_kendaraan_depan) {
-                $foto_kendaraan_depan = $this->uploadBase64image($request->foto_kendaraan_depan);
-            }
-
-            if ($request->foto_kendaraan_belakang) {
-                $foto_kendaraan_belakang = $this->uploadBase64image($request->foto_kendaraan_belakang);
+                $foto_identitas = uploadBase64image($request->foto_identitas);
             }
 
             User::create([
                 'nama_lengkap' => $request->nama_lengkap,
                 'no_telp' => $request->no_telp,
                 'email' => $request->email,
-                'password' => bcrypt($request->password),
+                'password' => Hash::make($request->password),
                 'nomor_identitas' => $no_identitas,
                 'no_plat' => $request->no_plat,
                 'foto_identitas' => $foto_identitas,
-                'foto_stnk' => $foto_stnk,
-                'foto_kendaraan_depan' => $foto_kendaraan_depan,
-                'foto_kendaraan_belakang' => $foto_kendaraan_belakang,
                 'saldo' => 0,
                 'pin' => $request->pin,
                 'qr_code' => $fileName
             ]);
-
-
-            // $user = User::where('nomor_identitas', $no_identitas)->first();
 
             $token = JWTAuth::attempt(['no_telp' => $request->no_telp, 'password' => $request->password]);
             $userResponse = getUser($request->no_telp);
@@ -166,17 +144,72 @@ class UserController extends Controller
         }
     }
 
-    // https://www.base64-image.de/
-    private function uploadBase64image($base64image)
+    public function show()
     {
-        $decoder = new Base64ImageDecoder($base64image, $allowedFormats = ['jpeg', 'png', 'jpg']);
+        $user = getUser(Auth::user()->nomor_identitas);
+        return ResponseFormatter::success([
+            $user
+        ], 'User Found Succesfully');
+    }
 
-        $decodedContent = $decoder->getDecodedContent();
-        $format = $decoder->getFormat(); // 'png', or 'jpeg', or 'gif', or etc.
-        $image = Str::random(10) . '.' . $format;
-        File::put('dokumen/' . $image, $decodedContent);
-        // Storage::disk('public')->put('dokumen/' . $image, $decodedContent);
+    public function UpdateUser(Request $request)
+    {
+        try {
+            $user = User::find(Auth::user()->nomor_identitas);
+            $data = $request->only('nama_lengkap', 'no_telp', 'email', 'no_plat', 'foto_identitas');
 
-        return $image;
+            if ($request->email != $user->email) {
+                $isExistEmail = User::where('email', $request->email)->exists();
+                if ($isExistEmail) {
+                    return response()->json(['message' => 'Email already taken'], 409);
+                }
+            }
+
+            if ($request->no_telp != $user->no_telp) {
+                $isExistno_telp = User::where('no_telp', $request->no_telp)->exists();
+                if ($isExistno_telp) {
+                    return response()->json(['message' => 'Nomor Telepon already taken'], 409);
+                }
+            }
+
+            if ($request->foto_identitas) {
+                $foto_identitas = uploadBase64image($request->foto_identitas);
+                $data['foto_identitas'] = $foto_identitas;
+                if ($user->foto_identitas) {
+                    File::delete('dokumen/' . $user->foto_identitas);
+                }
+            }
+
+            $user->update($data);
+            return ResponseFormatter::success([
+                $user
+            ], 'Update User Succesfully');
+        } catch (\Throwable $th) {
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error' => $th->getMessage(),
+            ], 'Update User Failed', 500);
+        }
+    }
+
+    public function isEmailExist(Request $request)
+    {
+        $validator = Validator::make($request->only('email'), [
+            'email' => 'required|email'
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->messages()], 400);
+        }
+
+        $isExists = User::where('email', $request->email)->exists();
+
+        return  response()->json(['is_email_exist' => $isExists]);
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+
+        return response()->json(['message' => 'Logout User Succesfully']);
     }
 }
