@@ -40,7 +40,7 @@ class UserController extends Controller
             mkdir($path, 0755, true);
         }
 
-        $fileName = uniqid() . '.png'; // Nama file kode QR
+        $fileName = 'user_' . uniqid() . '.png'; // Nama file kode QR
         $filePath = $path . $fileName; // Path lengkap ke file kode QR
 
         $options = new QROptions([
@@ -146,7 +146,10 @@ class UserController extends Controller
 
     public function show()
     {
-        $user = getUser(Auth::user()->nomor_identitas);
+        $user = User::LeftJoin('kendaraan', 'users.nomor_identitas', '=', 'kendaraan.user_id')
+            ->where('users.nomor_identitas', Auth::user()->nomor_identitas)
+            ->where('kendaraan.is_active', 1)
+            ->first();
         return ResponseFormatter::success([
             $user
         ], 'User Found Succesfully');

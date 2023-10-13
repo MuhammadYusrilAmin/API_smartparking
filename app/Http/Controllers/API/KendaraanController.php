@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Models\KendaraanModel;
 use Illuminate\Http\Request;
+use chillerlan\QRCode\{QRCode, QROptions};
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class KendaraanController extends Controller
@@ -43,6 +45,7 @@ class KendaraanController extends Controller
             return response()->json(['errors' => $validator->messages()], 400);
         }
 
+        DB::beginTransaction();
         try {
             $foto_stnk = null;
             $foto_kendaraan_tampak_depan = null;
@@ -65,20 +68,50 @@ class KendaraanController extends Controller
                 $foto_kendaraan_dengan_pemilik = uploadBase64image($request->foto_kendaraan_dengan_pemilik);
             }
 
-            KendaraanModel::create([
+            $is_active = (KendaraanModel::where('user_id', Auth::user()->nomor_identitas)->count() == 0) ? 1 : 0;
+
+            $kendaraan = KendaraanModel::create([
                 'nama_kendaraan' => $request->nama_kendaraan,
                 'user_id' => Auth::user()->nomor_identitas,
                 'no_plat' => $request->no_plat,
                 'foto_stnk' => $foto_stnk,
                 'foto_kendaraan_tampak_depan' => $foto_kendaraan_tampak_depan,
                 'foto_kendaraan_tampak_belakang' => $foto_kendaraan_tampak_belakang,
-                'foto_kendaraan_dengan_pemilik' => $foto_kendaraan_dengan_pemilik
+                'foto_kendaraan_dengan_pemilik' => $foto_kendaraan_dengan_pemilik,
+                'is_active' => $is_active
             ]);
 
+            // generate qr code 
+            $data =  $kendaraan->id; // Ganti dengan data yang sesuai\
+            $path = public_path('kendaraan/'); // Tentukan lokasi untuk menyimpan kode QR
+
+            if (!file_exists($path)) {
+                mkdir($path, 0755, true);
+            }
+
+            $fileName = 'kendaraaan_' . uniqid() . '.png'; // Nama file kode QR
+            $filePath = $path . $fileName; // Path lengkap ke file kode QR
+
+            $options = new QROptions([
+                'version'        => 5,
+                'outputType'     => QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel'       => QRCode::ECC_L,
+                'imageBase64'    => false,
+                'imageTransparency' => false, // Set latar belakang menjadi solid
+                'bgColor'        => [255, 255, 255], // Warna latar belakang (putih)
+            ]);
+
+            KendaraanModel::where('id', $data)->update(['image_qr' => $fileName]);
+
+            $qrcode = new QRCode($options);
+            $qrcode->render($data, $filePath);
+
+            DB::commit();
             return ResponseFormatter::success([
                 'message' => 'Success',
             ], 'Create Vehicle Successfully');
         } catch (\Throwable $th) {
+            DB::rollBack();
             return ResponseFormatter::error([
                 'message' => 'something went wrong',
                 'error' => $th
@@ -100,6 +133,52 @@ class KendaraanController extends Controller
     public function edit(string $id)
     {
         //
+    }
+
+    public function is_active(string $id)
+    {
+        DB::beginTransaction();
+        try {
+            KendaraanModel::where('user_id', Auth::user()->nomor_identitas)->update(['is_active' => 0]);
+
+            $kendaraan = KendaraanModel::find($id);
+            $kendaraan->is_active = 1;
+            $kendaraan->update();
+
+            DB::commit();
+            return ResponseFormatter::success([
+                $kendaraan
+            ], 'Vehicle Active Succesfully');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error' => $th->getMessage(),
+            ], 'Update Active Failed', 500);
+        }
+    }
+
+    public function is_nonactive(string $id)
+    {
+        DB::beginTransaction();
+        try {
+            KendaraanModel::where('user_id', Auth::user()->nomor_identitas)->update(['is_active' => 0]);
+
+            $kendaraan = KendaraanModel::find($id);
+            $kendaraan->is_active = 0;
+            $kendaraan->update();
+
+            DB::commit();
+            return ResponseFormatter::success([
+                $kendaraan
+            ], 'Vehicle Non Active Succesfully');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error' => $th->getMessage(),
+            ], 'Update Non Active Failed', 500);
+        }
     }
 
     /**
@@ -193,6 +272,9 @@ class KendaraanController extends Controller
                 File::delete('dokumen/' . $kendaraan->foto_kendaraan_dengan_pemilik);
             }
 
+            if ($kendaraan->image_qr) {
+                File::delete('kendaraan/' . $kendaraan->image_qr);
+            }
 
             $kendaraan->delete($id);
             return ResponseFormatter::success([

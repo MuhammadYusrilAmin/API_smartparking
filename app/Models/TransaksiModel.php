@@ -10,7 +10,7 @@ class TransaksiModel extends Model
     use HasFactory;
     protected $table = 'transaksi';
     protected $fillable = [
-        'id', 'lokasi_parkir', 'harga_akhir', 'tanggal', 'status', 'status_keluar_masuk', 'detail_lokasi_id', 'kendaraan_id', 'jam_masuk', 'jam_keluar'
+        'id', 'harga_akhir', 'tanggal', 'status', 'status_keluar_masuk', 'detail_lokasi_id', 'kendaraan_id', 'jam_masuk', 'jam_keluar'
     ];
 
     public function detail_lokasi()

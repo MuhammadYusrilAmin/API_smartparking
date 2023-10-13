@@ -15,7 +15,7 @@ class SaldoController extends Controller
      */
     public function index()
     {
-        return ResponseFormatter::success(SaldoModel::where('user_id', Auth::user()->nomor_identitas)->orderBy('created_at', 'desc')->get(), 'Data Saldo get successfully');
+        return ResponseFormatter::success(SaldoModel::where('user_id', Auth::user()->nomor_identitas)->orderBy('created_at', 'desc')->get(), 'Successfully got data Saldo');
     }
 
     /**
