@@ -20,11 +20,11 @@ class TransaksiModel extends Model
 
     public function kendaraan()
     {
-        return $this->belongsTo(KendaraanModel::class, 'kendaraan_id', 'id');
+        return $this->belongsTo(KendaraanModel::class);
     }
 
     public function voucher()
     {
-        return $this->hasOne(VoucherDetailModel::class, 'id', 'voucher_id');
+        return $this->hasOne(VoucherDetailModel::class);
     }
 }

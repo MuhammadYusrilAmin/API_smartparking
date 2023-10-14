@@ -8,6 +8,7 @@ use App\Helper\ResponseFormatter;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use chillerlan\QRCode\{QRCode, QROptions};
 use Illuminate\Support\Facades\File;
@@ -19,55 +20,55 @@ class UserController extends Controller
 {
     public function register(Request $request)
     {
+        // return DB::table('users')->count();
         $data = $request->all();
         $validator = Validator::make($data, [
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'max:255', 'min:6'],
             'no_telp' => ['required', 'string', 'max:15'],
-            'no_plat' => ['required', 'string', 'max:255', 'min:3'],
             'pin' => ['required', 'string', 'max:255', 'min:6'],
         ]);
 
-
-        $no_identitas = $request->nomor_identitas;
-        // generate qr code 
-        $data =  $no_identitas; // Ganti dengan data yang sesuai\
-        $path = public_path('qrcodes/'); // Tentukan lokasi untuk menyimpan kode QR
-
-        // Pastikan folder penyimpanan kode QR ada. Jika belum ada, buat folder tersebut.
-        if (!file_exists($path)) {
-            mkdir($path, 0755, true);
-        }
-
-        $fileName = 'user_' . uniqid() . '.png'; // Nama file kode QR
-        $filePath = $path . $fileName; // Path lengkap ke file kode QR
-
-        $options = new QROptions([
-            'version'        => 5,
-            'outputType'     => QRCode::OUTPUT_IMAGE_PNG,
-            'eccLevel'       => QRCode::ECC_L,
-            'imageBase64'    => false,
-            'imageTransparency' => false, // Set latar belakang menjadi solid
-            'bgColor'        => [255, 255, 255], // Warna latar belakang (putih)
-        ]);
-
-        $qrcode = new QRCode($options);
-        $qrcode->render($data, $filePath);
-        // end generate
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->messages()], 400);
-        }
-
-        $user = User::where('nomor_identitas', $no_identitas)->exists();
-
-        if ($user) {
-            return response()->json(['message' => 'Nomor identitas already taken'], 409);
-        }
-
-
+        DB::beginTransaction();
         try {
+
+            $no_identitas = $request->nomor_identitas;
+            // generate qr code 
+            $data =  $no_identitas; // Ganti dengan data yang sesuai\
+            $path = public_path('qrcodes/'); // Tentukan lokasi untuk menyimpan kode QR
+
+            // Pastikan folder penyimpanan kode QR ada. Jika belum ada, buat folder tersebut.
+            if (!file_exists($path)) {
+                mkdir($path, 0755, true);
+            }
+
+            $fileName = 'user_' . uniqid() . '.png'; // Nama file kode QR
+            $filePath = $path . $fileName; // Path lengkap ke file kode QR
+
+            $options = new QROptions([
+                'version'        => 5,
+                'outputType'     => QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel'       => QRCode::ECC_L,
+                'imageBase64'    => false,
+                'imageTransparency' => false, // Set latar belakang menjadi solid
+                'bgColor'        => [255, 255, 255], // Warna latar belakang (putih)
+            ]);
+
+            $qrcode = new QRCode($options);
+            $qrcode->render($data, $filePath);
+            // end generate
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->messages()], 400);
+            }
+
+            $user = User::where('nomor_identitas', $no_identitas)->exists();
+
+            if ($user) {
+                return response()->json(['message' => 'Nomor identitas already taken'], 409);
+            }
+
             $foto_identitas = null;
 
             if ($request->foto_identitas) {
@@ -80,7 +81,6 @@ class UserController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'nomor_identitas' => $no_identitas,
-                'no_plat' => $request->no_plat,
                 'foto_identitas' => $foto_identitas,
                 'saldo' => 0,
                 'pin' => $request->pin,
@@ -93,10 +93,12 @@ class UserController extends Controller
             $userResponse->token_expires_in = auth()->factory()->getTTL() * 60;
             $userResponse->token_type = 'bearer';
 
+            DB::commit();
             return ResponseFormatter::success([
                 $userResponse
             ], 'User Registered');
         } catch (\Throwable $th) {
+            DB::rollBack();
             return ResponseFormatter::error([
                 'message' => 'something went wrong',
                 'error' => $th->getMessage()
@@ -157,6 +159,7 @@ class UserController extends Controller
 
     public function UpdateUser(Request $request)
     {
+        DB::beginTransaction();
         try {
             $user = User::find(Auth::user()->nomor_identitas);
             $data = $request->only('nama_lengkap', 'no_telp', 'email', 'no_plat', 'foto_identitas');
@@ -184,10 +187,12 @@ class UserController extends Controller
             }
 
             $user->update($data);
+            DB::commit();
             return ResponseFormatter::success([
                 $user
             ], 'Update User Succesfully');
         } catch (\Throwable $th) {
+            DB::rollBack();
             return ResponseFormatter::error([
                 'message' => 'Something went wrong',
                 'error' => $th->getMessage(),

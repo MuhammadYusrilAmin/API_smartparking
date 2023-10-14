@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('register', [UserController::class, 'register']);
 Route::post('login', [UserController::class, 'login']);
+Route::prefix('saldo')->group(function () {
+    Route::get('/', [SaldoController::class, 'index'])->name('saldo');
+});
 
 Route::group(['middleware' => 'jwt.verify'], function ($router) {
     Route::get('show', [UserController::class, 'show']);
@@ -46,9 +49,7 @@ Route::group(['middleware' => 'jwt.verify'], function ($router) {
         Route::get('/', [ParkirController::class, 'index'])->name('parkir');
     });
 
-    Route::prefix('saldo')->group(function () {
-        Route::get('/', [SaldoController::class, 'index'])->name('saldo');
-    });
+
 
     Route::prefix('transaksi')->group(function () {
         Route::get('/', [TransaksiController::class, 'index'])->name('transaksi');

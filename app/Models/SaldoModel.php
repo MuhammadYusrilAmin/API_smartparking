@@ -15,6 +15,6 @@ class SaldoModel extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'nomor_identitas');
+        return $this->belongsTo(User::class);
     }
 }
