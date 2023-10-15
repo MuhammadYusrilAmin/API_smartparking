@@ -84,4 +84,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(KendaraanModel::class);
     }
+
+    public function transaksi()
+    {
+        return $this->hasMany(TransaksiModel::class);
+    }
 }

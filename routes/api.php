@@ -8,6 +8,7 @@ use App\Http\Controllers\API\TransaksiController;
 use App\Http\Controllers\API\VoucherController;
 use App\Http\Controllers\API\VoucherDetailController;
 use App\Http\Controllers\API\UserController;
+use App\Models\DetailLokasiModel;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,13 +48,14 @@ Route::group(['middleware' => 'jwt.verify'], function ($router) {
         Route::get('/', [ParkirController::class, 'index'])->name('parkir');
     });
 
+
     Route::prefix('saldo')->group(function () {
         Route::get('/', [SaldoController::class, 'index'])->name('saldo');
     });
 
     Route::prefix('transaksi')->group(function () {
         Route::get('/', [TransaksiController::class, 'index'])->name('transaksi');
-        Route::get('/getParkirNotPay', [TransaksiController::class, 'getParkirNotPay'])->name('transaksi-getParkirNotPay');
+        Route::get('/getParkirSaatIni', [TransaksiController::class, 'getParkirSaatIni'])->name('transaksi-getParkirSaatIni');
         Route::post('/store/{id}', [TransaksiController::class, 'store'])->name('transaksi-store');
         Route::put('/pay', [TransaksiController::class, 'pay'])->name('transaksi-pay');
         Route::put('/out', [TransaksiController::class, 'out'])->name('transaksi-out');

@@ -15,7 +15,8 @@ class ParkirController extends Controller
      */
     public function index()
     {
-        return ResponseFormatter::success(ParkirModel::orderBy('created_at', 'desc')->get(), 'Data profile user berhasil diambil');
+
+        return ResponseFormatter::success([ParkirModel::with(['detail_lokasi'])->orderBy('created_at', 'desc')->get()], 'Data profile user berhasil diambil');
     }
 
     /**

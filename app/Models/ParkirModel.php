@@ -15,6 +15,6 @@ class ParkirModel extends Model
 
     public function detail_lokasi()
     {
-        return $this->hasMany(DetailLokasiModel::class);
+        return $this->hasMany(DetailLokasiModel::class, 'parkir_id', 'id');
     }
 }

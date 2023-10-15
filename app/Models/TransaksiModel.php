@@ -10,7 +10,7 @@ class TransaksiModel extends Model
     use HasFactory;
     protected $table = 'transaksi';
     protected $fillable = [
-        'id', 'harga_akhir', 'tanggal', 'status', 'status_keluar_masuk', 'detail_lokasi_id', 'kendaraan_id', 'jam_masuk', 'jam_keluar', 'image_qr'
+        'id', 'user_id', 'harga_akhir', 'tanggal', 'status', 'status_keluar_masuk', 'detail_lokasi_id', 'kendaraan_id', 'jam_masuk', 'jam_keluar', 'image_qr'
     ];
 
     public function detail_lokasi()
@@ -21,6 +21,11 @@ class TransaksiModel extends Model
     public function kendaraan()
     {
         return $this->belongsTo(KendaraanModel::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function voucher()

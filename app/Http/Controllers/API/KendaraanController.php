@@ -20,7 +20,7 @@ class KendaraanController extends Controller
      */
     public function index()
     {
-        return ResponseFormatter::success(KendaraanModel::where('user_id', Auth::user()->nomor_identitas)->orderBy('created_at', 'desc')->get(), 'Data profile user berhasil diambil');
+        return ResponseFormatter::success(KendaraanModel::where('user_id', Auth::user()->nomor_identitas)->orderBy('created_at', 'desc')->get(), 'Data Kendaraan berhasil diambil');
     }
 
     /**

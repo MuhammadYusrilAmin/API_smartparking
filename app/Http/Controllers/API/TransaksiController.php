@@ -20,15 +20,15 @@ class TransaksiController extends Controller
      */
     public function index()
     {
-        return ResponseFormatter::success(TransaksiModel::join('kendaraan', 'transaksi.kendaraan_id', '=', 'kendaraan.id')
-            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->orderBy('transaksi.created_at', 'desc')->get(), 'Successfully got data History');
+        return ResponseFormatter::success(TransaksiModel::where('user_id', Auth::user()->nomor_identitas)
+            ->orderBy('created_at', 'desc')->get(), 'Successfully got data History');
     }
 
-    public function getParkirNotPay()
+    public function getParkirSaatIni()
     {
-        return ResponseFormatter::success(TransaksiModel::join('kendaraan', 'transaksi.kendaraan_id', '=', 'kendaraan.id')
-            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->where('transaksi.status_keluar_masuk', 0)
-            ->orderBy('transaksi.created_at', 'desc')->get(), 'Successfully got data History');
+        return ResponseFormatter::success(TransaksiModel::where('user_id', Auth::user()->nomor_identitas)
+            ->where('status_keluar_masuk', 0)
+            ->orderBy('created_at', 'desc')->get(), 'Successfully got data History');
     }
 
     /**
@@ -56,6 +56,7 @@ class TransaksiController extends Controller
         try {
             $transaksi = TransaksiModel::create([
                 'harga_akhir' => null,
+                'user_id' => Auth::user()->nomor_identitas,
                 'tanggal' => date('Y-m-d'),
                 'status' => 0,
                 'status_keluar_masuk' => 0,
@@ -86,6 +87,8 @@ class TransaksiController extends Controller
             ]);
 
             TransaksiModel::where('id', $data)->update(['image_qr' => $fileName]);
+
+            DetailLokasiModel::where('id', $id)->update(['status' => 1]);
 
             $get_data = TransaksiModel::where('id', $data)->first();
 
@@ -154,10 +157,13 @@ class TransaksiController extends Controller
                 'status' => 0
             ]);
 
+
+            $data = TransaksiModel::find($request->transaksi_id);
+
             DB::commit();
             return ResponseFormatter::success([
                 'message' => 'Success',
-                'data' => $transaksi
+                'data' => $data
             ], 'Transaction Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -187,10 +193,13 @@ class TransaksiController extends Controller
                 'status_keluar_masuk' => 1,
             ]);
 
+            DetailLokasiModel::where('id', $transaksi->detail_lokasi_id)->update(['status' => 0]);
+
+            $data = TransaksiModel::find($request->transaksi_id);
             DB::commit();
             return ResponseFormatter::success([
                 'message' => 'Success',
-                'data' => $transaksi
+                'data' => $data
             ], 'get out Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
