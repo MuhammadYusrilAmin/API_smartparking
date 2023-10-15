@@ -150,7 +150,7 @@ class UserController extends Controller
     {
         $user = User::LeftJoin('kendaraan', 'users.nomor_identitas', '=', 'kendaraan.user_id')
             ->where('users.nomor_identitas', Auth::user()->nomor_identitas)
-            ->where('kendaraan.is_active', 1)
+            ->OrWhere('kendaraan.is_active', 1)
             ->first();
         return ResponseFormatter::success([
             $user
@@ -162,7 +162,7 @@ class UserController extends Controller
         DB::beginTransaction();
         try {
             $user = User::find(Auth::user()->nomor_identitas);
-            $data = $request->only('nama_lengkap', 'no_telp', 'email', 'no_plat', 'foto_identitas');
+            $data = $request->only('nama_lengkap', 'no_telp', 'email', 'foto_identitas');
 
             if ($request->email != $user->email) {
                 $isExistEmail = User::where('email', $request->email)->exists();

@@ -38,7 +38,7 @@ class KendaraanController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nama_kendaraan' => ['required', 'string', 'max:255'],
-            'no_plat' => ['required', 'string', 'max:255', 'min:3'],
+            'nomor_plat' => ['required', 'string', 'max:255', 'min:3'],
         ]);
 
         if ($validator->fails()) {
@@ -73,7 +73,7 @@ class KendaraanController extends Controller
             $kendaraan = KendaraanModel::create([
                 'nama_kendaraan' => $request->nama_kendaraan,
                 'user_id' => Auth::user()->nomor_identitas,
-                'no_plat' => $request->no_plat,
+                'nomor_plat' => $request->nomor_plat,
                 'foto_stnk' => $foto_stnk,
                 'foto_kendaraan_tampak_depan' => $foto_kendaraan_tampak_depan,
                 'foto_kendaraan_tampak_belakang' => $foto_kendaraan_tampak_belakang,
@@ -103,12 +103,15 @@ class KendaraanController extends Controller
 
             KendaraanModel::where('id', $data)->update(['image_qr' => $fileName]);
 
+            $get_data = KendaraanModel::where('id', $data)->first();
+
             $qrcode = new QRCode($options);
             $qrcode->render($data, $filePath);
 
             DB::commit();
             return ResponseFormatter::success([
                 'message' => 'Success',
+                'data' => $get_data,
             ], 'Create Vehicle Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -188,7 +191,7 @@ class KendaraanController extends Controller
     {
         try {
             $kendaraan = KendaraanModel::find($id);
-            $data = $request->only('nama_kendaraan', 'no_plat', 'foto_stnk', 'foto_kendaraan_tampak_depan', 'foto_kendaraan_tampak_belakang', 'foto_kendaraan_dengan_pemilik');
+            $data = $request->only('nama_kendaraan', 'nomor_plat', 'foto_stnk', 'foto_kendaraan_tampak_depan', 'foto_kendaraan_tampak_belakang', 'foto_kendaraan_dengan_pemilik');
 
             if ($request->nama_kendaraan != $kendaraan->nama_kendaraan) {
                 $isExistNamaKendaraan = KendaraanModel::where('nama_kendaraan', $request->nama_kendaraan)->exists();
@@ -197,9 +200,9 @@ class KendaraanController extends Controller
                 }
             }
 
-            if ($request->no_plat != $kendaraan->no_plat) {
-                $isExistno_plat = KendaraanModel::where('no_plat', $request->no_plat)->exists();
-                if ($isExistno_plat) {
+            if ($request->nomor_plat != $kendaraan->nomor_plat) {
+                $isExistnomor_plat = KendaraanModel::where('nomor_plat', $request->nomor_plat)->exists();
+                if ($isExistnomor_plat) {
                     return response()->json(['message' => 'Nomor Plat already taken'], 409);
                 }
             }

@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DetailLokasiModel;
 use App\Models\SaldoModel;
 use App\Models\TransaksiModel;
-
+use chillerlan\QRCode\{QRCode, QROptions};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,14 +21,14 @@ class TransaksiController extends Controller
     public function index()
     {
         return ResponseFormatter::success(TransaksiModel::join('kendaraan', 'transaksi.kendaraan_id', '=', 'kendaraan.id')
-            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->orderBy('created_at', 'desc')->get(), 'Successfully got data History');
+            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->orderBy('transaksi.created_at', 'desc')->get(), 'Successfully got data History');
     }
 
     public function getParkirNotPay()
     {
         return ResponseFormatter::success(TransaksiModel::join('kendaraan', 'transaksi.kendaraan_id', '=', 'kendaraan.id')
-            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->where('kendaraan.status_keluar_masuk', 0)
-            ->orderBy('created_at', 'desc')->get(), 'Successfully got data History');
+            ->where('kendaraan.user_id', Auth::user()->nomor_identitas)->where('transaksi.status_keluar_masuk', 0)
+            ->orderBy('transaksi.created_at', 'desc')->get(), 'Successfully got data History');
     }
 
     /**
@@ -54,7 +54,7 @@ class TransaksiController extends Controller
         }
 
         try {
-            $data = TransaksiModel::create([
+            $transaksi = TransaksiModel::create([
                 'harga_akhir' => null,
                 'tanggal' => date('Y-m-d'),
                 'status' => 0,
@@ -65,9 +65,36 @@ class TransaksiController extends Controller
                 'jam_keluar' => null,
             ]);
 
+            // generate qr code 
+            $data =  $transaksi->id; // Ganti dengan data yang sesuai\
+            $path = public_path('tiket/'); // Tentukan lokasi untuk menyimpan kode QR
+
+            if (!file_exists($path)) {
+                mkdir($path, 0755, true);
+            }
+
+            $fileName = 'tiket_' . uniqid() . '.png'; // Nama file kode QR
+            $filePath = $path . $fileName; // Path lengkap ke file kode QR
+
+            $options = new QROptions([
+                'version'        => 5,
+                'outputType'     => QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel'       => QRCode::ECC_L,
+                'imageBase64'    => false,
+                'imageTransparency' => false, // Set latar belakang menjadi solid
+                'bgColor'        => [255, 255, 255], // Warna latar belakang (putih)
+            ]);
+
+            TransaksiModel::where('id', $data)->update(['image_qr' => $fileName]);
+
+            $get_data = TransaksiModel::where('id', $data)->first();
+
+            $qrcode = new QRCode($options);
+            $qrcode->render($data, $filePath);
+
             return ResponseFormatter::success([
                 'message' => 'Success',
-                'data' => $data
+                'data' => $get_data
             ], 'Parkir Successfully');
         } catch (\Throwable $th) {
             return ResponseFormatter::error([
@@ -94,13 +121,18 @@ class TransaksiController extends Controller
     /**
      * Update the specified resource in storage.
      */
+
     public function update(Request $request, string $id)
     {
+    }
+
+    public function pay(Request $request)
+    {
         date_default_timezone_set('Asia/Jakarta');
-        $transaksi = TransaksiModel::find($id);
         $validator = Validator::make($request->all(), [
             'transaksi_id' => ['required', 'string', 'max:15'],
         ]);
+        $transaksi = TransaksiModel::find($request->transaksi_id);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->messages()], 400);
@@ -108,10 +140,10 @@ class TransaksiController extends Controller
 
         DB::beginTransaction();
         try {
-            $kendaraan = TransaksiModel::where('id', $id)->update([
+            TransaksiModel::where('id', $request->transaksi_id)->update([
                 'harga_akhir' =>   $transaksi->detail_lokasi->harga_tiket,
                 'status' => 1,
-                'status_keluar_masuk' => 1,
+                'status_keluar_masuk' => 0,
                 'jam_keluar' => date('H:i:s'),
             ]);
 
@@ -125,7 +157,7 @@ class TransaksiController extends Controller
             DB::commit();
             return ResponseFormatter::success([
                 'message' => 'Success',
-                'data' => $kendaraan
+                'data' => $transaksi
             ], 'Transaction Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -133,6 +165,39 @@ class TransaksiController extends Controller
                 'message' => 'something went wrong',
                 'error' => $th
             ], 'Transaction Unsuccessfully', 500);
+        }
+    }
+
+
+    public function out(Request $request)
+    {
+        date_default_timezone_set('Asia/Jakarta');
+        $validator = Validator::make($request->all(), [
+            'transaksi_id' => ['required', 'string', 'max:15'],
+        ]);
+        $transaksi = TransaksiModel::find($request->transaksi_id);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->messages()], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            TransaksiModel::where('id', $request->transaksi_id)->update([
+                'status_keluar_masuk' => 1,
+            ]);
+
+            DB::commit();
+            return ResponseFormatter::success([
+                'message' => 'Success',
+                'data' => $transaksi
+            ], 'get out Successfully');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return ResponseFormatter::error([
+                'message' => 'something went wrong',
+                'error' => $th
+            ], 'get out Unsuccessfully', 500);
         }
     }
 
