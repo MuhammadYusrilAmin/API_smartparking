@@ -95,14 +95,13 @@ class TransaksiController extends Controller
             $qrcode = new QRCode($options);
             $qrcode->render($data, $filePath);
 
-            return ResponseFormatter::success([
+            return ResponseFormatter::success(
                 $get_data
-            ], 'Parkir Successfully');
+            , 'Parkir Successfully');
         } catch (\Throwable $th) {
-            return ResponseFormatter::error([
-                'message' => 'something went wrong',
-                'error' => $th
-            ], 'Parkir Unsuccessfully', 500);
+            return ResponseFormatter::error(
+                $th
+            , 'Parkir Unsuccessfully', 500);
         }
     }
 
@@ -160,15 +159,14 @@ class TransaksiController extends Controller
             $data = TransaksiModel::find($request->transaksi_id);
 
             DB::commit();
-            return ResponseFormatter::success([
+            return ResponseFormatter::success(
                  $data
-            ], 'Transaction Successfully');
+            , 'Transaction Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'something went wrong',
-                'error' => $th
-            ], 'Transaction Unsuccessfully', 500);
+            return ResponseFormatter::error(
+             $th
+            , 'Transaction Unsuccessfully', 500);
         }
     }
 
@@ -195,15 +193,14 @@ class TransaksiController extends Controller
 
             $data = TransaksiModel::find($request->transaksi_id);
             DB::commit();
-            return ResponseFormatter::success([
+            return ResponseFormatter::success(
                 $data
-            ], 'get out Successfully');
+            , 'get out Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'something went wrong',
-                'error' => $th
-            ], 'get out Unsuccessfully', 500);
+            return ResponseFormatter::error(
+                $th
+            , 'get out Unsuccessfully', 500);
         }
     }
 

@@ -94,15 +94,17 @@ class UserController extends Controller
             $userResponse->token_type = 'bearer';
 
             DB::commit();
-            return ResponseFormatter::success([
-                $userResponse
-            ], 'User Registered');
+            return ResponseFormatter::success(
+                $userResponse,
+                'User Registered'
+            );
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'something went wrong',
-                'error' => $th->getMessage()
-            ], 'Aunthentication Failed', 500);
+            return ResponseFormatter::error(
+                $th->getMessage(),
+                'Aunthentication Failed',
+                500
+            );
         }
     }
 
@@ -133,16 +135,18 @@ class UserController extends Controller
             $userResponse->token_expires_in = (auth()->factory()->getTTL() * 60) * 25;
             $userResponse->token_type = 'bearer';
 
-            return ResponseFormatter::success([
-                $userResponse
-            ], 'Authenticated');
+            return ResponseFormatter::success(
+                $userResponse,
+                'Authenticated'
+            );
 
             // return $token;
         } catch (JWTException $th) {
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Authentication Failed', 500);
+            return ResponseFormatter::error(
+                $th->getMessage(),
+                'Authentication Failed',
+                500
+            );
         }
     }
 
@@ -152,9 +156,10 @@ class UserController extends Controller
             ->where('users.nomor_identitas', Auth::user()->nomor_identitas)
             ->OrWhere('kendaraan.is_active', 1)
             ->first();
-        return ResponseFormatter::success([
-            $user
-        ], 'User Found Succesfully');
+        return ResponseFormatter::success(
+            $user,
+            'User Found Succesfully'
+        );
     }
 
     public function UpdateUser(Request $request)
@@ -188,15 +193,17 @@ class UserController extends Controller
 
             $user->update($data);
             DB::commit();
-            return ResponseFormatter::success([
-                $user
-            ], 'Update User Succesfully');
+            return ResponseFormatter::success(
+                $user,
+                'Update User Succesfully'
+            );
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Update User Failed', 500);
+            return ResponseFormatter::error(
+                $th->getMessage(),
+                'Update User Failed',
+                500
+            );
         }
     }
 

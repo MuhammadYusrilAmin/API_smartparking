@@ -109,15 +109,17 @@ class KendaraanController extends Controller
             $qrcode->render($data, $filePath);
 
             DB::commit();
-            return ResponseFormatter::success([
-                $get_data
-            ], 'Create Vehicle Successfully');
+            return ResponseFormatter::success(
+                $get_data,
+                'Create Vehicle Successfully'
+            );
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'something went wrong',
-                'error' => $th
-            ], 'Create Vehicle Unsuccessfully', 500);
+            return ResponseFormatter::error(
+                $th,
+                'Create Vehicle Unsuccessfully',
+                500
+            );
         }
     }
 
@@ -148,15 +150,17 @@ class KendaraanController extends Controller
             $kendaraan->update();
 
             DB::commit();
-            return ResponseFormatter::success([
-                $kendaraan
-            ], 'Vehicle Active Succesfully');
+            return ResponseFormatter::success(
+                $kendaraan,
+                'Vehicle Active Succesfully'
+            );
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Update Active Failed', 500);
+            return ResponseFormatter::error(
+                $th->getMessage(),
+                'Update Active Failed',
+                500
+            );
         }
     }
 
@@ -171,15 +175,17 @@ class KendaraanController extends Controller
             $kendaraan->update();
 
             DB::commit();
-            return ResponseFormatter::success([
-                $kendaraan
-            ], 'Vehicle Non Active Succesfully');
+            return ResponseFormatter::success(
+                $kendaraan,
+                'Vehicle Non Active Succesfully'
+            );
         } catch (\Throwable $th) {
             DB::rollBack();
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Update Non Active Failed', 500);
+            return ResponseFormatter::error(
+                $th->getMessage(),
+                'Update Non Active Failed',
+                500
+            );
         }
     }
 
@@ -239,14 +245,13 @@ class KendaraanController extends Controller
             }
 
             $kendaraan->update($data);
-            return ResponseFormatter::success([
+            return ResponseFormatter::success(
                 $kendaraan
-            ], 'Update Vehicle Succesfully');
+            , 'Update Vehicle Succesfully');
         } catch (\Throwable $th) {
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Update Vehicle Failed', 500);
+            return ResponseFormatter::error(
+              $th->getMessage()
+            , 'Update Vehicle Failed', 500);
         }
     }
 
@@ -283,10 +288,9 @@ class KendaraanController extends Controller
                 'message' => 'Success'
             ], 'Delete Vehicle Succesfully');
         } catch (\Throwable $th) {
-            return ResponseFormatter::error([
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage(),
-            ], 'Delete Vehicle Failed', 500);
+            return ResponseFormatter::error(
+            $th->getMessage(),
+             'Delete Vehicle Failed', 500);
         }
     }
 }
