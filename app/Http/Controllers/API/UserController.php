@@ -130,7 +130,7 @@ class UserController extends Controller
 
             $userResponse = getUser($request->no_telp);
             $userResponse->token = $token;
-            $userResponse->token_expires_in = auth()->factory()->getTTL() * 60;
+            $userResponse->token_expires_in = (auth()->factory()->getTTL() * 60) * 25;
             $userResponse->token_type = 'bearer';
 
             return ResponseFormatter::success([
