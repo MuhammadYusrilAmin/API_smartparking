@@ -90,7 +90,7 @@ class UserController extends Controller
             $token = JWTAuth::attempt(['no_telp' => $request->no_telp, 'password' => $request->password]);
             $userResponse = getUser($request->no_telp);
             $userResponse->token = $token;
-            $userResponse->token_expires_in = auth()->factory()->getTTL() * 60;
+            $userResponse->token_expires_in = (auth()->factory()->getTTL() * 60) * 25;
             $userResponse->token_type = 'bearer';
 
             DB::commit();
