@@ -96,8 +96,7 @@ class TransaksiController extends Controller
             $qrcode->render($data, $filePath);
 
             return ResponseFormatter::success([
-                'message' => 'Success',
-                'data' => $get_data
+                $get_data
             ], 'Parkir Successfully');
         } catch (\Throwable $th) {
             return ResponseFormatter::error([
@@ -162,8 +161,7 @@ class TransaksiController extends Controller
 
             DB::commit();
             return ResponseFormatter::success([
-                'message' => 'Success',
-                'data' => $data
+                 $data
             ], 'Transaction Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -198,8 +196,7 @@ class TransaksiController extends Controller
             $data = TransaksiModel::find($request->transaksi_id);
             DB::commit();
             return ResponseFormatter::success([
-                'message' => 'Success',
-                'data' => $data
+                $data
             ], 'get out Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();

@@ -110,8 +110,7 @@ class KendaraanController extends Controller
 
             DB::commit();
             return ResponseFormatter::success([
-                'message' => 'Success',
-                'data' => $get_data,
+                $get_data
             ], 'Create Vehicle Successfully');
         } catch (\Throwable $th) {
             DB::rollBack();
